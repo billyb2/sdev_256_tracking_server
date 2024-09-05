@@ -1,7 +1,9 @@
 package api
 
 import (
+	"bytes"
 	"crypto/rand"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
@@ -31,8 +33,8 @@ type registerResponse struct {
 //	@Accept		json
 //	@Produce	json
 //	@Param		registrationInfo	body		registrationInfo	true	"Registration Info"
-//	@Success	201					{object}	registerResponse
-//	@Failure	400					{object}	registerResponse
+//	@Success	200					{object}	registerResponse
+//	@Failure	401					{object}	registerResponse
 //	@Failure	500					{object}	registerResponse
 //	@Router		/register [post]
 func Register(c *gin.Context) {
@@ -102,14 +104,125 @@ func registerUser(c *gin.Context, authInfo *registrationInfo) (string, error) {
 		}
 	}
 
-	token := ulid.Make()
-	_, err = tx.Exec("insert into tokens (user_id, token) values (?, ?)", userID, token)
+	token, err := createToken(tx, userID)
 	if err != nil {
 		return "", err
 	}
 	if err := tx.Commit(); err != nil {
 		return "", err
+
+	}
+
+	return token, err
+
+}
+
+func createToken(tx *sql.Tx, userID int32) (string, error) {
+	token := ulid.Make()
+	_, err := tx.Exec("insert into tokens (user_id, token) values (?, ?)", userID, token)
+	if err != nil {
+		return "", err
 	}
 
 	return token.String(), nil
+
+}
+
+type loginInfo struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type loginResponse struct {
+	Token string `json:"token,omitempty"`
+	Error string `json:"error,omitempty"`
+}
+
+// Login godoc
+//
+//	@Summary	Verifies and logs in the user, returning a token
+//	@ID			login-user
+//	@Accept		json
+//	@Produce	json
+//	@Param		loginInfo	body		loginInfo	true	"Login Info"
+//	@Success	200			{object}	loginResponse
+//	@Failure	401			{object}	loginResponse
+//	@Failure	500			{object}	loginResponse
+//	@Router		/login [post]
+func Login(c *gin.Context) {
+	authInfo := loginInfo{}
+	err := c.BindJSON(&authInfo)
+	if err != nil {
+		err = fmt.Errorf("error parsing loginResponse: %w")
+		c.JSON(http.StatusBadRequest, loginResponse{
+			Error: err.Error(),
+		})
+		return
+	}
+
+	token, err := checkUserCreds(c, &authInfo)
+	switch {
+	case err == nil:
+		c.JSON(http.StatusOK, loginResponse{
+			Token: token,
+		})
+
+	case errors.Is(err, badUsernameOrPassword):
+		c.JSON(http.StatusUnauthorized, loginResponse{
+			Error: err.Error(),
+		})
+
+	default:
+		c.JSON(http.StatusInternalServerError, loginResponse{
+			Error: err.Error(),
+		})
+	}
+}
+
+var badUsernameOrPassword error = fmt.Errorf("incorrect username or password")
+
+func checkUserCreds(c *gin.Context, authInfo *loginInfo) (string, error) {
+	db := db.FromGinContext(c)
+	if db == nil {
+		return "", fmt.Errorf("db is nil")
+	}
+
+	row := db.QueryRow("select id, password_hash, salt from users where username = ?", authInfo.Username)
+	if row.Err() != nil {
+		return "", row.Err()
+	}
+
+	var userID int32
+	var passwordHash []byte
+	var passwordSalt []byte
+	if err := row.Scan(&userID, &passwordHash, &passwordSalt); err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return "", badUsernameOrPassword
+		default:
+			return "", err
+		}
+	}
+
+	passwordBytes := []byte(authInfo.Password)
+	attemptedPasswordHash := argon2.IDKey(passwordBytes, passwordSalt, 1, 47104, 1, 32)
+	if !bytes.Equal(passwordHash, attemptedPasswordHash) {
+		return "", badUsernameOrPassword
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return "", err
+	}
+	defer tx.Commit()
+	token, err := createToken(tx, userID)
+	if err != nil {
+		return "", err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return "", err
+	}
+
+	return token, nil
 }

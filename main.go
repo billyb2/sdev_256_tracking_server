@@ -11,9 +11,9 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-//	@title		Tracking Server API
+// @title		Tracking Server API
 //
-//	@BasePath	/api
+// @BasePath	/api
 func main() {
 	db, err := dblib.NewDBConnection()
 	if err != nil {
@@ -29,6 +29,7 @@ func main() {
 
 	v1 := r.Group("/api")
 	v1.POST("/register", api.Register)
+	v1.POST("/login", api.Login)
 	r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	fmt.Println("Starting server!")

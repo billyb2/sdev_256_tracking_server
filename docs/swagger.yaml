@@ -1,12 +1,17 @@
 basePath: /api
 definitions:
-  api.RegistrationInfo:
+  api.loginInfo:
     properties:
-      company:
-        type: string
       password:
         type: string
       username:
+        type: string
+    type: object
+  api.loginResponse:
+    properties:
+      error:
+        type: string
+      token:
         type: string
     type: object
   api.registerResponse:
@@ -16,10 +21,47 @@ definitions:
       token:
         type: string
     type: object
+  api.registrationInfo:
+    properties:
+      company:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
 info:
   contact: {}
   title: Tracking Server API
 paths:
+  /login:
+    post:
+      consumes:
+      - application/json
+      operationId: login-user
+      parameters:
+      - description: Login Info
+        in: body
+        name: loginInfo
+        required: true
+        schema:
+          $ref: '#/definitions/api.loginInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.loginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.loginResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.loginResponse'
+      summary: Verifies and logs in the user, returning a token
   /register:
     post:
       consumes:
@@ -31,7 +73,7 @@ paths:
         name: registrationInfo
         required: true
         schema:
-          $ref: '#/definitions/api.RegistrationInfo'
+          $ref: '#/definitions/api.registrationInfo'
       produces:
       - application/json
       responses:
