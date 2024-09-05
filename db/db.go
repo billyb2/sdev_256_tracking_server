@@ -1,7 +1,6 @@
 package db
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"net/url"
@@ -9,6 +8,7 @@ import (
 
 	"github.com/amacneil/dbmate/v2/pkg/dbmate"
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/sqlite"
+	"github.com/gin-gonic/gin"
 	_ "github.com/glebarez/go-sqlite"
 )
 
@@ -37,10 +37,17 @@ func NewDBConnection() (*sql.DB, error) {
 	return db, nil
 }
 
-func WithContext(ctx context.Context, db *sql.DB) context.Context {
-	return context.WithValue(ctx, dbContextKey, db)
+func WithGinContext(c *gin.Context, db *sql.DB) {
+	c.Set(dbContextKey, db)
+	c.Next()
 }
 
-func FromContext(ctx context.Context) *sql.DB {
-	return ctx.Value(dbContextKey).(*sql.DB)
+func FromGinContext(c *gin.Context) *sql.DB {
+	db, exists := c.Get(dbContextKey)
+	switch exists {
+	case true:
+		return db.(*sql.DB)
+	default:
+		return nil
+	}
 }

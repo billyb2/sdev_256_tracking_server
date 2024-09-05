@@ -1,0 +1,51 @@
+basePath: /api
+definitions:
+  api.RegistrationInfo:
+    properties:
+      company:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  api.registerResponse:
+    properties:
+      error:
+        type: string
+      token:
+        type: string
+    type: object
+info:
+  contact: {}
+  title: Tracking Server API
+paths:
+  /register:
+    post:
+      consumes:
+      - application/json
+      operationId: register-user
+      parameters:
+      - description: Registration Info
+        in: body
+        name: registrationInfo
+        required: true
+        schema:
+          $ref: '#/definitions/api.RegistrationInfo'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.registerResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/api.registerResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.registerResponse'
+      summary: Registers a new user
+swagger: "2.0"

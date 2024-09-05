@@ -1,33 +1,36 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"net/http"
 
 	"github.com/billyb2/tracking_server/api"
 	dblib "github.com/billyb2/tracking_server/db"
+	_ "github.com/billyb2/tracking_server/docs"
+	"github.com/gin-gonic/gin"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+//	@title		Tracking Server API
+//
+//	@BasePath	/api
 func main() {
-	ctx := context.Background()
 	db, err := dblib.NewDBConnection()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	ctx = dblib.WithContext(ctx, db)
 	defer db.Close()
 
+	r := gin.Default()
+	r.Use(func(c *gin.Context) {
+		dblib.WithGinContext(c, db)
+	})
+
+	v1 := r.Group("/api")
+	v1.POST("/register", api.Register)
+	r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+
 	fmt.Println("Starting server!")
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api/register", api.Register)
-
-	http.ListenAndServe(":8080", func() http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Embed the global context into the request's context
-			mux.ServeHTTP(w, r.WithContext(ctx))
-		})
-	}())
+	r.Run(":8080")
 }
