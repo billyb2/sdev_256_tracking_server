@@ -6,6 +6,7 @@ require (
 	github.com/amacneil/dbmate/v2 v2.20.0
 	github.com/gin-gonic/gin v1.10.0
 	github.com/glebarez/go-sqlite v1.22.0
+	github.com/oklog/ulid/v2 v2.1.0
 	github.com/swaggo/files v1.0.1
 	github.com/swaggo/gin-swagger v1.6.0
 	github.com/swaggo/swag v1.16.3

@@ -1,6 +1,6 @@
 -- migrate:up
 create table users (
-  id serial primary key,
+  id integer primary key not null,
   username text unique not null,
   company text not null,
   password_hash bytea not null,
