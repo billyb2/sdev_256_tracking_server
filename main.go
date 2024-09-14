@@ -30,6 +30,7 @@ func main() {
 	v1 := r.Group("/api")
 	v1.POST("/register", api.Register)
 	v1.POST("/login", api.Login)
+	v1.POST("/start_tracking", api.StartTrackingGroups)
 	r.GET("/docs/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	fmt.Println("Starting server!")

@@ -1,17 +1,15 @@
 package api
 
 import (
-	"bytes"
 	"crypto/rand"
-	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
+	"github.com/billyb2/tracking_server/auth"
 	"github.com/billyb2/tracking_server/db"
 	"github.com/gin-gonic/gin"
-	"github.com/oklog/ulid/v2"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -33,8 +31,8 @@ type registerResponse struct {
 //	@Accept		json
 //	@Produce	json
 //	@Param		registrationInfo	body		registrationInfo	true	"Registration Info"
-//	@Success	200					{object}	registerResponse
-//	@Failure	401					{object}	registerResponse
+//	@Success	201					{object}	registerResponse
+//	@Failure	400					{object}	registerResponse
 //	@Failure	500					{object}	registerResponse
 //	@Router		/register [post]
 func Register(c *gin.Context) {
@@ -104,7 +102,7 @@ func registerUser(c *gin.Context, authInfo *registrationInfo) (string, error) {
 		}
 	}
 
-	token, err := createToken(tx, userID)
+	token, err := auth.CreateToken(tx, userID)
 	if err != nil {
 		return "", err
 	}
@@ -114,17 +112,6 @@ func registerUser(c *gin.Context, authInfo *registrationInfo) (string, error) {
 	}
 
 	return token, err
-
-}
-
-func createToken(tx *sql.Tx, userID int32) (string, error) {
-	token := ulid.Make()
-	_, err := tx.Exec("insert into tokens (user_id, token) values (?, ?)", userID, token)
-	if err != nil {
-		return "", err
-	}
-
-	return token.String(), nil
 
 }
 
@@ -160,14 +147,14 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	token, err := checkUserCreds(c, &authInfo)
+	token, err := auth.CheckUserCreds(c, authInfo.Username, authInfo.Password)
 	switch {
 	case err == nil:
 		c.JSON(http.StatusOK, loginResponse{
 			Token: token,
 		})
 
-	case errors.Is(err, badUsernameOrPassword):
+	case errors.Is(err, auth.BadUsernameOrPassword):
 		c.JSON(http.StatusUnauthorized, loginResponse{
 			Error: err.Error(),
 		})
@@ -177,52 +164,4 @@ func Login(c *gin.Context) {
 			Error: err.Error(),
 		})
 	}
-}
-
-var badUsernameOrPassword error = fmt.Errorf("incorrect username or password")
-
-func checkUserCreds(c *gin.Context, authInfo *loginInfo) (string, error) {
-	db := db.FromGinContext(c)
-	if db == nil {
-		return "", fmt.Errorf("db is nil")
-	}
-
-	row := db.QueryRow("select id, password_hash, salt from users where username = ?", authInfo.Username)
-	if row.Err() != nil {
-		return "", row.Err()
-	}
-
-	var userID int32
-	var passwordHash []byte
-	var passwordSalt []byte
-	if err := row.Scan(&userID, &passwordHash, &passwordSalt); err != nil {
-		switch {
-		case errors.Is(err, sql.ErrNoRows):
-			return "", badUsernameOrPassword
-		default:
-			return "", err
-		}
-	}
-
-	passwordBytes := []byte(authInfo.Password)
-	attemptedPasswordHash := argon2.IDKey(passwordBytes, passwordSalt, 1, 47104, 1, 32)
-	if !bytes.Equal(passwordHash, attemptedPasswordHash) {
-		return "", badUsernameOrPassword
-	}
-
-	tx, err := db.Begin()
-	if err != nil {
-		return "", err
-	}
-	defer tx.Commit()
-	token, err := createToken(tx, userID)
-	if err != nil {
-		return "", err
-	}
-
-	if err := tx.Commit(); err != nil {
-		return "", err
-	}
-
-	return token, nil
 }

@@ -30,6 +30,29 @@ definitions:
       username:
         type: string
     type: object
+  api.startTracking:
+    properties:
+      token:
+        type: string
+      tracking_number_groups:
+        items:
+          $ref: '#/definitions/api.trackingNumberGroup'
+        type: array
+    type: object
+  api.startTrackingResp:
+    properties:
+      error:
+        type: string
+    type: object
+  api.trackingNumberGroup:
+    properties:
+      group_name:
+        type: string
+      tracking_numbers:
+        items:
+          type: string
+        type: array
+    type: object
 info:
   contact: {}
   title: Tracking Server API
@@ -53,8 +76,8 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/api.loginResponse'
-        "400":
-          description: Bad Request
+        "401":
+          description: Unauthorized
           schema:
             $ref: '#/definitions/api.loginResponse'
         "500":
@@ -90,4 +113,32 @@ paths:
           schema:
             $ref: '#/definitions/api.registerResponse'
       summary: Registers a new user
+  /start_tracking:
+    post:
+      consumes:
+      - application/json
+      operationId: start-tracking-groups
+      parameters:
+      - description: Tracking Info
+        in: body
+        name: registrationInfo
+        required: true
+        schema:
+          $ref: '#/definitions/api.startTracking'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/api.startTrackingResp'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.startTrackingResp'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.startTrackingResp'
+      summary: Starts tracking the package tracking numbers given by the user
 swagger: "2.0"

@@ -43,8 +43,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/api.loginResponse"
                         }
                     },
-                    "400": {
-                        "description": "Bad Request",
+                    "401": {
+                        "description": "Unauthorized",
                         "schema": {
                             "$ref": "#/definitions/api.loginResponse"
                         }
@@ -100,6 +100,49 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/start_tracking": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Starts tracking the package tracking numbers given by the user",
+                "operationId": "start-tracking-groups",
+                "parameters": [
+                    {
+                        "description": "Tracking Info",
+                        "name": "registrationInfo",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.startTracking"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/api.startTrackingResp"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.startTrackingResp"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.startTrackingResp"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -147,6 +190,42 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "api.startTracking": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                },
+                "tracking_number_groups": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api.trackingNumberGroup"
+                    }
+                }
+            }
+        },
+        "api.startTrackingResp": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                }
+            }
+        },
+        "api.trackingNumberGroup": {
+            "type": "object",
+            "properties": {
+                "group_name": {
+                    "type": "string"
+                },
+                "tracking_numbers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
                 }
             }
         }
