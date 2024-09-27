@@ -15,6 +15,49 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/get_tracking": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "summary": "Gets the status of tracking numbers",
+                "operationId": "get-tracking-numbers",
+                "parameters": [
+                    {
+                        "description": "Tracking numbers",
+                        "name": "getTrackingInfo",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/api.getTracking"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api.trackingInfo"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/api.trackingInfo"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/api.trackingInfo"
+                        }
+                    }
+                }
+            }
+        },
         "/login": {
             "post": {
                 "consumes": [
@@ -114,7 +157,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "description": "Tracking Info",
-                        "name": "registrationInfo",
+                        "name": "startTrackingInfo",
                         "in": "body",
                         "required": true,
                         "schema": {
@@ -146,6 +189,20 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "api.getTracking": {
+            "type": "object",
+            "properties": {
+                "token": {
+                    "type": "string"
+                },
+                "tracking_numbers": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "api.loginInfo": {
             "type": "object",
             "properties": {
@@ -212,6 +269,17 @@ const docTemplate = `{
             "properties": {
                 "error": {
                     "type": "string"
+                }
+            }
+        },
+        "api.trackingInfo": {
+            "type": "object",
+            "properties": {
+                "tracking_info": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "type": "string"
+                    }
                 }
             }
         },

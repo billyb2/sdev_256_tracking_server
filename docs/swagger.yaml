@@ -1,5 +1,14 @@
 basePath: /api
 definitions:
+  api.getTracking:
+    properties:
+      token:
+        type: string
+      tracking_numbers:
+        items:
+          type: string
+        type: array
+    type: object
   api.loginInfo:
     properties:
       password:
@@ -44,6 +53,13 @@ definitions:
       error:
         type: string
     type: object
+  api.trackingInfo:
+    properties:
+      tracking_info:
+        additionalProperties:
+          type: string
+        type: object
+    type: object
   api.trackingNumberGroup:
     properties:
       group_name:
@@ -57,6 +73,34 @@ info:
   contact: {}
   title: Tracking Server API
 paths:
+  /get_tracking:
+    post:
+      consumes:
+      - application/json
+      operationId: get-tracking-numbers
+      parameters:
+      - description: Tracking numbers
+        in: body
+        name: getTrackingInfo
+        required: true
+        schema:
+          $ref: '#/definitions/api.getTracking'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api.trackingInfo'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/api.trackingInfo'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/api.trackingInfo'
+      summary: Gets the status of tracking numbers
   /login:
     post:
       consumes:
@@ -121,7 +165,7 @@ paths:
       parameters:
       - description: Tracking Info
         in: body
-        name: registrationInfo
+        name: startTrackingInfo
         required: true
         schema:
           $ref: '#/definitions/api.startTracking'
